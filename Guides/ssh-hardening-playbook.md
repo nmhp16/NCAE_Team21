@@ -1,158 +1,187 @@
+# SSH Hardening Guide
 
-# SSH Security Playbook (All Servers)
+## SSH Configuration Monitoring
 
-## Objective
-Secure SSH access on all Linux servers quickly.
-
-## Default SSH Info:
-- Port: `22`
-- Default Root login: enabled (must disable)
-
-## Step-by-Step Instructions:
-
-### **Step 1: Open SSH configuration file**
-`sudo nano /etc/ssh/sshd_config`
-
-
-### **Step 2: Secure SSH Settings**
-Modify lines exactly as below:
-`PermitRootLogin no PasswordAuthentication yes`
-
-Save file (`Ctrl+O`, then `Ctrl+X` to exit).
-
-### **Step 3: Install fail2ban (Automated Protection)**
-`sudo apt update sudo apt install fail2ban -y sudo systemctl enable --now fail2ban`
-
-
-### **Step 4: Restart SSH Service**
-`sudo systemctl restart sshd`
-
-
-##  Troubleshooting:
-- SSH connection refused: check firewall/router.
-- Can't log in after changes? Verify the config carefully or restart SSH.
-
-
----
-
-## Tips and tricks
-
-# SSH Security and Hardening Playbook
-
-## Objective
-
-Secure SSH access quickly and effectively on all Linux servers, ensuring only authorized users gain access, while also confusing attackers (Red Team) with decoy user accounts.
-
-## Default SSH Information
-- Port: `22`
-- Default Root login: enabled (Must be disabled)
-
-## Step-by-Step SSH Security Setup
-
-### Step 1: Create Authorized User Accounts
-
-Replace the usernames/passwords below with real team member info:
-
+### 1. SSH Service Monitoring
 ```bash
-sudo useradd -m -s /bin/bash -G sudo your_username
-sudo passwd your_username
+# Check SSH service status
+sudo systemctl status sshd
+
+# Monitor SSH connections
+sudo netstat -tuln | grep 22
+
+# Check SSH logs
+sudo tail -f /var/log/auth.log | grep sshd
+
+# Monitor failed login attempts
+sudo tail -f /var/log/auth.log | grep "Failed password"
 ```
 
-Repeat for each legitimate team member.
-
-### Step 2: Add Fake SSH Users (Red Team Distraction)
-
-Create decoy users to mislead attackers:
-
+### 2. SSH Security Checks
 ```bash
-sudo useradd -m -s /usr/sbin/nologin admin
-sudo useradd -m -s /usr/sbin/nologin support
-sudo useradd -m -s /usr/sbin/nologin ftpuser
+# Check SSH configuration
+sudo sshd -T
+
+# Verify SSH key permissions
+sudo ls -la ~/.ssh/
+
+# Check for root login attempts
+sudo grep "root" /var/log/auth.log | grep sshd
+
+# Monitor for brute force attempts
+sudo fail2ban-client status sshd
 ```
 
-Set random passwords for fake users (attackers will waste time):
-
+### 3. SSH Protection
 ```bash
-echo "admin:FakePass123" | sudo chpasswd
-echo "support:FakePass456" | sudo chpasswd
-echo "ftpuser:FakePass789" | sudo chpasswd
-```
+# Block attacking IPs
+sudo iptables -A INPUT -s ATTACKER_IP -p tcp --dport 22 -j DROP
 
-### Step 3: Secure the SSH Configuration
-
-Edit the SSH configuration file:
-
-```bash
-sudo nano /etc/ssh/sshd_config
-```
-
-Ensure the following settings are set exactly as shown:
-
-```
-PermitRootLogin no
-PasswordAuthentication yes
-AllowUsers your_real_users_here
-```
-
-Example:
-
-```
-AllowUsers alice bob charlie
-```
-
-Save and exit (`Ctrl+O`, then `Ctrl+X`).
-
-### Step 4: Restart SSH Service
-
-Apply the configuration immediately:
-
-```bash
+# Update SSH configuration
 sudo systemctl restart sshd
+
+# Check SSH status
+sudo systemctl status sshd
+
+# Monitor SSH processes
+sudo ps aux | grep sshd
 ```
 
-## Step 5: Install Fail2ban for Intrusion Prevention
+## Quick Response Actions
 
+### 1. SSH Response
 ```bash
-sudo apt update
-sudo apt install fail2ban -y
-sudo systemctl enable --now fail2ban
+# Restart SSH service
+sudo systemctl restart sshd
+
+# Check SSH logs
+sudo tail -n 50 /var/log/auth.log
+
+# Verify SSH configuration
+sudo sshd -t
+
+# Check fail2ban status
+sudo fail2ban-client status
 ```
 
-## Tips & Tricks
+### 2. Security Response
+```bash
+# Check for unauthorized keys
+sudo find / -name "authorized_keys" -type f -ls
 
-- **Fake Users:**
-  - Create multiple fake users with believable usernames.
-  - Do not grant shell access to these fake users (`/usr/sbin/nologin`).
-  - Attackers waste time trying to brute-force these accounts, distracting them from real ones.
+# Verify SSH users
+sudo grep -i "sshd" /etc/passwd
 
-- **SSH Port Change (Optional):**
-  - Change default SSH port from `22` to another port (`2222`, `2200`) to reduce automated scanning.
-  - Edit `/etc/ssh/sshd_config` and change:
-  ```
-  #Port 22
-  Port 2222
-  ```
-  - Restart SSH service afterward.
+# Check sudo access
+sudo cat /etc/sudoers
 
-## Troubleshooting
+# Monitor system logs
+sudo journalctl -u sshd -f
+```
 
-- **Locked Out?**
-  - Restore SSH config backup quickly:
-    ```bash
-    sudo cp /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
-    sudo systemctl restart sshd
-    ```
+## Evidence Collection
 
-- **SSH Service Issues:**
-  - Quickly check SSH service status:
-    ```bash
-    sudo systemctl status sshd
-    ```
+### 1. SSH Evidence
+```bash
+# Save SSH logs
+sudo cp /var/log/auth.log /var/log/incident/ssh_auth.log
 
+# Save SSH configuration
+sudo cp /etc/ssh/sshd_config /var/log/incident/
 
+# Save authorized keys
+sudo cp ~/.ssh/authorized_keys /var/log/incident/
 
+# Save system logs
+sudo cp /var/log/syslog /var/log/incident/
+```
 
-**END OF PLAYBOOK**
+### 2. Security Evidence
+```bash
+# Save user list
+sudo cat /etc/passwd > /var/log/incident/users.txt
+
+# Save sudo access
+sudo cat /etc/sudoers > /var/log/incident/sudoers.txt
+
+# Save SSH processes
+sudo ps aux | grep sshd > /var/log/incident/ssh_processes.txt
+
+# Save network connections
+sudo netstat -tuln | grep 22 > /var/log/incident/ssh_connections.txt
+```
+
+## Prevention Commands
+
+### 1. SSH Hardening
+```bash
+# Disable root login
+sudo sed -i 's/#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+
+# Disable password authentication
+sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+
+# Set secure permissions
+sudo chmod 700 ~/.ssh
+sudo chmod 600 ~/.ssh/authorized_keys
+
+# Configure SSH timeout
+sudo sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 300/' /etc/ssh/sshd_config
+```
+
+### 2. System Security
+```bash
+# Configure fail2ban
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+sudo systemctl restart fail2ban
+
+# Set up firewall rules
+sudo ufw allow ssh
+sudo ufw allow from 192.168.21.0/24 to any port 22
+
+# Monitor connections
+sudo tcpdump -i any port 22 -n
+```
+
+## Additional Security Measures
+
+### 1. Key Management
+```bash
+# Generate new SSH key
+ssh-keygen -t ed25519 -C "team21_admin"
+
+# Copy public key
+ssh-copy-id -i ~/.ssh/id_ed25519.pub user@host
+
+# Set key permissions
+chmod 600 ~/.ssh/id_ed25519
+chmod 644 ~/.ssh/id_ed25519.pub
+```
+
+### 2. Access Control
+```bash
+# Allow specific users
+sudo sed -i 's/#AllowUsers/AllowUsers team21_admin team21_web team21_db/' /etc/ssh/sshd_config
+
+# Set login grace time
+sudo sed -i 's/#LoginGraceTime 2m/LoginGraceTime 1m/' /etc/ssh/sshd_config
+
+# Set max sessions
+sudo sed -i 's/#MaxSessions 10/MaxSessions 2/' /etc/ssh/sshd_config
+
+# Set max auth tries
+sudo sed -i 's/#MaxAuthTries 6/MaxAuthTries 3/' /etc/ssh/sshd_config
+```
+
+## Notes
+- Monitor SSH logs continuously
+- Document all suspicious activities
+- Save evidence for analysis
+- Report incidents immediately
+- Keep SSH updated
+- Regular key rotation
+- Monitor system resources
+- Backup configurations
 
 
 

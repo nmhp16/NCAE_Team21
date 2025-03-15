@@ -1,4 +1,28 @@
+# Team 21 Infrastructure Setup and Security Guide
+
+## Quick Links to Playbooks
+- [Web & FTP Security](../Guides/web-ftp-playbook.md)
+- [MySQL & DNS Security](../Guides/mysql-dns-playbook.md)
+- [SSH Hardening](../Guides/ssh-hardening-playbook.md)
+- [Router Security](../Guides/router-security-playbook.md)
+- [Honeypot Monitoring](../Guides/honeypot-playbook.md)
+- [Red Team Detection](../Guides/red-team-detection.md)
+- [Cyber Games Main Guide](../Guides/cyber-games-playbook.md)
+- [Backup & Recovery](../Guides/backup-recovery-playbook.md)
+- [System Monitoring](../Guides/monitoring-playbook.md)
+
+## Infrastructure Overview
+
+### Network Layout
+- Router: 192.168.21.1
+- Web Server: 192.168.21.7
+- DNS Server: 192.168.21.5
+- Database Server: 192.168.21.12
+- FTP/Shell Server: DHCP-Assigned
+- Gravwell: 172.18.16.212
+
 ## 1. MikroTik Router (192.168.21.1)
+📖 Detailed guide: [Router Security Playbook](../Guides/router-security-playbook.md)
 
 ### Initial Setup
 
@@ -27,9 +51,9 @@ ip firewall filter add chain=input src-address=172.18.13.666 action=drop
 ```
 
 ## 2. Web Server (192.168.21.7)
+📖 Detailed guide: [Web & FTP Security Playbook](../Guides/web-ftp-playbook.md)
 
 ### Initial Setup
-
 ```bash
 # Update & install Apache
 apt update && apt upgrade -y
@@ -48,7 +72,7 @@ echo "<h1>Team 21 - Secure</h1>" > /var/www/html/index.html
 systemctl restart apache2
 ```
 
-### Attack Response: Web Defacement ###
+### Attack Response: Web Defacement
 ```bash
 # Restore from backup
 cp /var/www/html/backup/* /var/www/html/
@@ -58,9 +82,9 @@ iptables -A INPUT -s 172.18.13.666 -j DROP
 ```
 
 ## 3. DNS Server (192.168.21.5)
+📖 Detailed guide: [MySQL & DNS Security Playbook](../Guides/mysql-dns-playbook.md)
 
 ### Initial Setup
-
 ```bash
 # Install BIND9
 apt update && apt install bind9 -y
@@ -91,9 +115,9 @@ iptables -A INPUT -s 172.18.13.666 -j DROP
 ```
 
 ## 4. Database Server (192.168.21.12)
+📖 Detailed guide: [MySQL & DNS Security Playbook](../Guides/mysql-dns-playbook.md)
 
 ### Initial Setup
-
 ```bash
 # Create scoring user
 sudo -u postgres psql
@@ -113,11 +137,9 @@ sudo -u postgres psql -c "REVOKE CONNECT ON DATABASE scoring_db FROM scorer;"
 ```
 
 ## 5. FTP/Shell Server (DHCP-Assigned IP)
+📖 Detailed guide: [Web & FTP Security Playbook](../Guides/web-ftp-playbook.md)
 
 ### Initial Setup
-
-The FTP/Shell server setup includes enabling SSH/SFTP and creating a user for secure file transfers.
-
 ```bash
 # Enable SSH/SFTP
 systemctl start ssh
@@ -137,13 +159,9 @@ grep "Failed password" /var/log/auth.log
 ```
 
 ## 6. Kali Linux VM (Offensive Tool)
-
-The Kali Linux VM is used for offensive security operations such as network reconnaissance, web path discovery, and traffic analysis. Below are the key tools and commands for effective use.
+📖 Detailed guide: [Red Team Detection Guide](../Guides/red-team-detection.md)
 
 ### Network Recon
-
-Perform network scans to identify active hosts and open ports within the internal network.
-
 ```bash
 # Scan internal network for active hosts and open ports
 nmap -sV -p- 192.168.21.0/24
@@ -152,7 +170,7 @@ nmap -sV -p- 192.168.21.0/24
 gobuster dir -u http://192.168.21.7 -w /usr/share/wordlists/dirb/common.txt
 ```
 
-### Traffic Analysis ###
+### Traffic Analysis
 ```bash
 # Capture HTTP and HTTPS traffic
 tcpdump -i eth0 -w http.pcap 'tcp port 80 or port 443'
@@ -162,6 +180,9 @@ strings http.pcap | grep -i "flag{"
 ```
 
 ## 7. Gravwell (172.18.16.212)
+📖 Detailed guide: [System Monitoring Playbook](../Guides/monitoring-playbook.md)
+
+### Log Analysis
 ```bash
 # List top blocked IPs
 tag=firewall action=drop | stats count by src_ip | sort -count desc
@@ -169,3 +190,28 @@ tag=firewall action=drop | stats count by src_ip | sort -count desc
 # Analyze DNS query traffic
 tag=dns query | stats count by query | sort -count desc
 ```
+
+## Quick Response Scripts
+All scripts are located in the [Scripts](../Scripts) directory:
+- `enhanced_security.sh` - Overall system hardening
+- `network_segmentation.sh` - Network isolation
+- `backup-system.sh` - Data protection
+- `firewall.sh` - Network security
+- `apache_ssl.sh` - Web server security
+- `ftp_setup.sh` - FTP server configuration
+- `dns_setup.sh` - DNS server setup
+- `mysql_secure.sh` - Database security
+- `cowrie_honeypot.sh` - Attack detection
+- `ssh_setup.sh` - SSH hardening
+
+## Emergency Contacts
+- Team Lead: [Contact Info]
+- Network Admin: [Contact Info]
+- Security Lead: [Contact Info]
+
+## Important Notes
+1. All passwords must follow team password policy
+2. Document all changes in the incident log
+3. Always backup before making changes
+4. Test all services after configuration changes
+5. Monitor logs continuously using Gravwell

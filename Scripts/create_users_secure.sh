@@ -33,9 +33,9 @@ generate_password() {
     openssl rand -hex 32
 }
 
-# Define arrays for real (team) users and fake (decoy) users using historical figures.
-REAL_USERS=("lincoln" "washington" "joan" "alexander" "edison" "galileo" "newton" "tesla")
-FAKE_USERS=("napoleon" "mozart" "einstein" "cleopatra" "columbus" "beethoven" "plato" "homer" "shakespeare" "freud" "darwin" "curie" "julius" "voltaire" "archimedes" "hippocrates" "pasteur" "mendel" "turing" "lovelace" "socrates" "gutenberg" "daVinci" "marieAntoinette" "roentgen" "fermat" "babbage" "kepler" "pythagoras" "cicero" "descartes" "kafka" "aristotle" "kant" "nicolaus" "machiavelli" "franklin" "hubble" "faraday" "braille" "michelangelo" "leibniz" "watson" "crick" "hammurabi" "euclid" "magellan" "berenice")
+# Define arrays for real (team) users and fake (decoy) users
+REAL_USERS=("team21_admin" "team21_web" "team21_db" "team21_dns" "team21_ftp" "team21_monitor" "team21_backup")
+FAKE_USERS=("admin" "webadmin" "dbadmin" "dnsadmin" "ftpadmin" "monitor" "backup" "root" "mysql" "apache" "www-data" "bind" "named" "vsftpd" "postgres" "redis" "mongodb" "elasticsearch" "kibana" "logstash" "prometheus" "grafana" "jenkins" "git" "svn" "docker" "kubernetes" "ansible" "puppet" "chef" "salt" "vagrant" "vagrant-user" "vagrant-admin" "vagrant-root" "vagrant-web" "vagrant-db" "vagrant-dns" "vagrant-ftp" "vagrant-monitor" "vagrant-backup")
 
 echo "### Creating REAL users with sudo privileges ###"
 for user in "${REAL_USERS[@]}"; do
@@ -63,6 +63,11 @@ for user in "${REAL_USERS[@]}"; do
     chown "$user":"$user" "${SSH_DIR}"
     chmod 700 "${SSH_DIR}"
 
+    # Create authorized_keys file with proper permissions
+    touch "${SSH_DIR}/authorized_keys"
+    chown "$user":"$user" "${SSH_DIR}/authorized_keys"
+    chmod 600 "${SSH_DIR}/authorized_keys"
+
     echo "Real user $user processed successfully."
 done
 
@@ -86,9 +91,11 @@ for user in "${FAKE_USERS[@]}"; do
     # Log the fake user credentials.
     echo "Fake User: $user, Password: $fake_password (Account Locked)" >> "${CRED_FILE}"
 
-    # Optionally, create a dummy Secrets directory to simulate activity.
-    sudo -u "$user" mkdir -p "/home/$user/Secrets"
-    echo "dummy_key=FAKE_SECRET" | tee "/home/$user/Secrets/credentials.txt" >/dev/null
+    # Create dummy files to simulate activity
+    sudo -u "$user" mkdir -p "/home/$user/confidential"
+    echo "FAKE_CREDENTIALS=team21_fake_$(openssl rand -hex 8)" | tee "/home/$user/confidential/credentials.txt" >/dev/null
+    echo "FAKE_API_KEY=team21_fake_$(openssl rand -hex 16)" | tee "/home/$user/confidential/api_keys.txt" >/dev/null
+    echo "FAKE_DB_PASSWORD=team21_fake_$(openssl rand -hex 12)" | tee "/home/$user/confidential/database.txt" >/dev/null
 
     echo "Fake user $user processed successfully."
 done
@@ -111,4 +118,5 @@ done
 echo "====================================================="
 echo "[SECURITY]: Real user accounts have sudo privileges and are forced to change their passwords on first login."
 echo "[SECURITY]: Fake user accounts use a restricted shell and are locked."
+echo "[SECURITY]: All passwords are randomly generated and must be changed on first login."
 echo "[COMPLETE]: User setup complete!"

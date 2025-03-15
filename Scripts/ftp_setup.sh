@@ -2,7 +2,7 @@
 
 # Secure FTP Server (vsftpd) Setup Script
 # NCAE Cyber Games Competition
-# Run ONLY on FTP Server
+# Run ONLY on FTP Server (172.18.14.21)
 
 echo "[START] FTP Server installation and security setup."
 
@@ -26,9 +26,18 @@ write_enable=YES
 local_enable=YES
 chroot_local_user=YES
 allow_writeable_chroot=YES
+pasv_enable=YES
+pasv_min_port=40000
+pasv_max_port=50000
+pasv_address=172.18.14.21
 EOF'
 
-# Step 3: Restart vsftpd to apply settings
+# Step 3: Configure firewall for FTP
+echo "[INFO] Configuring firewall for FTP..."
+sudo ufw allow 21/tcp
+sudo ufw allow 40000:50000/tcp
+
+# Step 4: Restart vsftpd to apply settings
 echo "[INFO] Restarting FTP service (vsftpd)..."
 sudo systemctl restart vsftpd
 
@@ -36,4 +45,5 @@ sudo systemctl restart vsftpd
 sudo systemctl status vsftpd | grep Active
 
 echo "[COMPLETE] FTP server securely installed and configured."
+echo "[INFO] FTP server is accessible at 172.18.14.21"
 
